@@ -1,0 +1,7 @@
+activate the virtual env
+---------C:\Users\Dell\Desktop\PythonCodeToCleanExcellFIle\.venv\Scripts\activate
+
+install openpyxl
+---------pip install openpyxl
+
+RUN THE PROGRAM
