@@ -3,18 +3,11 @@
 import pandas as pd
 
 # File path
-excel_file = 'Book.xlsx'
+excel_file = 'Davao North Util 20250615.xlsx'
 
 # List of columns you want to extract
 columns_to_extract = [
-    'workordernumber',
-    'customername',
-    'customercontact',
-    'customeraddress',
-    'appointmentdate',
-    'team',
-    'delayreason',
-    'facilityname'
+    'DPdeniro' , 'S_SP' , 'S_Total' , 'DP/NAP LAT' , 'DP/NAP LONG'
 ]
 
 # Step 1: Read the Excel file without usecols
