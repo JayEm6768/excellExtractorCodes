@@ -5,8 +5,8 @@ import os
 
 # Paths
 files_folder = "Files"
-input_filename = "Davao North Util 20250615.xlsx" # Change this to your actual input file name
-output_filename = "extractColumnResult.xlsx"
+input_filename = "DVN DP Util 20250715.xlsx" # Change this to your actual input file name
+output_filename = "DVN DP Util 20250715_extracted.xlsx"
 
 # Ensure the files folder exists
 os.makedirs(files_folder, exist_ok=True)
@@ -17,7 +17,7 @@ output_path = os.path.join(files_folder, output_filename)
 
 # List of columns you want to extract
 columns_to_extract = [
-    'DPdeniro', 'S_SP', 'S_Total', 'DP/NAP LAT', 'DP/NAP LONG'
+    'DPdeniro', 'S_SP', 'S_Total', 'Com Date','DP/NAP LAT', 'DP/NAP LONG', 'BRGY_NAME'
 ]
 
 # Step 1: Read the Excel file
