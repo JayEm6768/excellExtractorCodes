@@ -3,7 +3,7 @@
 import pandas as pd
 
 # File path
-excel_file = 'NewValidationAug18.xlsx'
+excel_file = 'thisone.xlsx'
 
 # List of columns you want to extract
 columns_to_extract = [

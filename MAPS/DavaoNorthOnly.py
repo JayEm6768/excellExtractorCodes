@@ -17,7 +17,7 @@ input_path = os.path.join(files_folder, input_filename)
 # Columns to extract (including CFS Cluster for filtering)
 columns_to_extract = [
     'DPdeniro', 'S_SP', 'S_Total', 'Com Date',
-    'DP/NAP LAT', 'DP/NAP LONG', 'BRGY_NAME', 'CFS Cluster'
+    'DP/NAP LAT', 'DP/NAP LONG', 'BRGY_NAME', 'CFS Cluster', 'Tech', 'Location Type'
 ]
 
 # Step 1: Read the Excel file

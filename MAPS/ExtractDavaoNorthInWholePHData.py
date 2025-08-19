@@ -17,7 +17,7 @@ input_path = os.path.join(files_folder, input_filename)
 # Columns to extract (including CFS Cluster for filtering)
 columns_to_extract = [
     'DPdeniro', 'S_SP', 'S_Total', 'Com Date',
-    'DP/NAP LAT', 'DP/NAP LONG', 'BRGY_NAME', 'CFS Cluster'
+    'DP/NAP LAT', 'DP/NAP LONG', 'BRGY_NAME', 'CFS Cluster','Tech','Location Type'
 ]
 
 # Step 1: Read the Excel file
@@ -57,19 +57,28 @@ group1_brgy = [
     'Barangay 38-D', 'Barangay 39-D', 'Barangay 40-D', 'Bucana', 'Centro', 
     'Gov. Vicente Duterte', 'Gov. Paciano Bangoy', 'Lapu-lapu', 'Leon Garcia Sr.', 
     'San Antonio', 'Tres De Mayo', 'Zone 1',
-    'Matina Crossing', 'Kap. Tomas Monteverde Sr.'
+    # Added
+    'Matina Crossing',
+    'Kap. Tomas Monteverde Sr.'
 ]
 
 group2_brgy = [
-    'Rafael Castillo', 'Sasa', 'Vicente Hizon Sr.', 
+     'Rafael Castillo', 'Sasa', 'Vicente Hizon Sr.', 
     'Ubalde', 'Wilfredo Aquino', 'Ilang', 'Pampanga',
-    'Buhangin', 'Alfonso Angliongto Sr.'
+    # Added
+    'Buhangin',
+    'Alfonso Angliongto Sr.'
 ]
 
 group3_brgy = [
     'Cabantian', 'Mandug', 'Panacan', 'Bunawan', 'Indangan', 
-    'Alejandra Navarro', 'Tagpore', 'Tibungco',
-    'Communal', 'San Isidro', 'Acacia', 'Tigatto'
+    'Alejandra Navarro', 'Tagpore',
+    # Added
+    'Tibungco',
+    'Communal',
+    'San Isidro',
+    'Acacia','Tigatto'
+
 ]
 
 # Step 7: Save grouped data
