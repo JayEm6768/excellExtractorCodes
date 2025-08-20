@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Processor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding-top: 30px;
+            padding-bottom: 50px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .card-header {
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            color: white;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #182848 0%, #4b6cb7 100%);
+        }
+        .upload-area {
+            border: 2px dashed #4b6cb7;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            background-color: rgba(75, 108, 183, 0.1);
+        }
+        .upload-area i {
+            font-size: 48px;
+            color: #4b6cb7;
+            margin-bottom: 15px;
+        }
+        .progress {
+            height: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .file-item {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #4b6cb7;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+        }
+        .instructions {
+            background-color: #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .highlight {
+            color: #4b6cb7;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card mb-4">
+                    <div class="card-header text-center py-3">
+                        <h2><i class="fas fa-file-excel me-2"></i>Excel Data Processor</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="upload-area" id="dropZone">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <h4>Upload Excel File</h4>
+                                    <p class="text-muted">Drag & drop your file here or click to browse</p>
+                                    <input type="file" id="fileInput" class="d-none" accept=".xlsx, .xls">
+                                    <button class="btn btn-primary mt-3" onclick="document.getElementById('fileInput').click()">
+                                        <i class="fas fa-folder-open me-2"></i>Browse Files
+                                    </button>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5><span class="step-number">1</span>File Information</h5>
+                                    <div id="fileInfo" class="mt-3">
+                                        <p class="text-muted">No file selected</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="instructions mb-4">
+                                    <h5><span class="step-number">2</span>Instructions</h5>
+                                    <ul class="mt-3">
+                                        <li>Upload an Excel file with the required format</li>
+                                        <li>The application will process the data according to predefined rules</li>
+                                        <li>Files will be categorized by region and technology type</li>
+                                        <li>Processed files will be available for download</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button id="processBtn" class="btn btn-primary btn-lg" disabled>
+                                        <i class="fas fa-cog me-2"></i>Process Data
+                                    </button>
+                                </div>
+                                
+                                <div class="progress mt-4">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%">0%</div>
+                                </div>
+                                
+                                <div id="statusMessage" class="alert alert-info mt-4" style="display: none;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <span id="statusText">Ready to process</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header text-center py-3">
+                        <h3><i class="fas fa-download me-2"></i>Processed Files</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="results" class="text-center">
+                            <p class="text-muted">Processed files will appear here</p>
+                        </div>
+                        <div id="fileList" class="file-list mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const processBtn = document.getElementById('processBtn');
+        const progressBar = document.getElementById('progressBar');
+        const statusMessage = document.getElementById('statusMessage');
+        const statusText = document.getElementById('statusText');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileList = document.getElementById('fileList');
+        const results = document.getElementById('results');
+
+        // Configuration (from Python code)
+        const columnsToExtract = [
+            'DPdeniro', 'S_SP', 'S_Total', 'Com Date',
+            'DP/NAP LAT', 'DP/NAP LONG', 'BRGY_NAME',
+            'CFS Cluster', 'Tech', 'Location Type'
+        ];
+
+        const validClusters = ["DAVAO NORTH", "DAVAO SOUTH", "TAGUM 1", "TAGUM 2"];
+
+        const group1_brgy = [
+            'Agdao', 'Bago Gallera', 'Baliok', 'Bangkas Heights', 'Barangay 1-A', 
+            'Barangay 2-A', 'Barangay 3-A', 'Barangay 4-A', 'Barangay 5-A', 'Barangay 6-A', 
+            'Barangay 7-A', 'Barangay 8-A', 'Barangay 9-A', 'Barangay 10-A', 'Barangay 11-B', 
+            'Barangay 12-B', 'Barangay 13-B', 'Barangay 14-B', 'Barangay 15-B', 'Barangay 16-B', 
+            'Barangay 17-B', 'Barangay 18-B', 'Barangay 19-B', 'Barangay 20-B', 'Barangay 21-C', 
+            'Barangay 22-C', 'Barangay 23-C', 'Barangay 24-C', 'Barangay 26-C', 'Barangay 27-C', 
+            'Barangay 28-C', 'Barangay 29-C', 'Barangay 30-C', 'Barangay 31-D', 'Barangay 32-D', 
+            'Barangay 33-D', 'Barangay 34-D', 'Barangay 35-D', 'Barangay 36-D', 'Barangay 37-D', 
+            'Barangay 38-D', 'Barangay 39-D', 'Barangay 40-D', 'Bucana', 'Centro', 
+            'Gov. Vicente Duterte', 'Gov. Paciano Bangoy', 'Lapu-lapu', 'Leon Garcia Sr.', 
+            'San Antonio', 'Tres De Mayo', 'Zone 1',
+            'Matina Crossing', 'Kap. Tomas Monteverde Sr.'
+        ];
+
+        const group2_brgy = [
+            'Rafael Castillo', 'Sasa', 'Vicente Hizon Sr.', 
+            'Ubalde', 'Wilfredo Aquino', 'Ilang', 'Pampanga',
+            'Buhangin', 'Alfonso Angliongto Sr.'
+        ];
+
+        const group3_brgy = [
+            'Cabantian', 'Mandug', 'Panacan', 'Bunawan', 'Indangan', 
+            'Alejandra Navarro', 'Tagpore',
+            'Tibungco', 'Communal', 'San Isidro', 'Acacia','Tigatto'
+        ];
+
+        const groupMapping = {
+            "South": group1_brgy,
+            "Central": group2_brgy,
+            "North": group3_brgy
+        };
+
+        let currentFile = null;
+
+        // Event Listeners
+        fileInput.addEventListener('change', handleFileSelect);
+        processBtn.addEventListener('click', processData);
+        
+        // Drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropZone.style.borderColor = '#4b6cb7';
+            dropZone.style.backgroundColor = 'rgba(75, 108, 183, 0.2)';
+        }
+
+        function unhighlight() {
+            dropZone.style.borderColor = '#4b6cb7';
+            dropZone.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        }
+
+        // File selection handler
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                currentFile = file;
+                const fileName = file.name;
+                const fileSize = (file.size / 1024 / 1024).toFixed(2); // MB
+                
+                fileInfo.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <span><i class="fas fa-file-excel text-success me-2"></i>${fileName}</span>
+                        <span class="text-muted">${fileSize} MB</span>
+                    </div>
+                `;
+                
+                processBtn.disabled = false;
+                statusText.textContent = 'Ready to process';
+                statusMessage.style.display = 'block';
+            }
+        }
+
+        // Update progress bar
+        function updateProgress(percent) {
+            progressBar.style.width = `${percent}%`;
+            progressBar.textContent = `${percent}%`;
+        }
+
+        // Process data function
+        function processData() {
+            if (!currentFile) return;
+            
+            // Reset UI
+            updateProgress(0);
+            statusText.textContent = 'Processing file...';
+            processBtn.disabled = true;
+            fileList.innerHTML = '';
+            results.innerHTML = '<p class="text-muted">Processing...</p>';
+            
+            // Read the Excel file
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // Get first sheet
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    updateProgress(30);
+                    
+                    // Process the data (simplified version of the Python code)
+                    const processedData = processExcelData(jsonData);
+                    
+                    updateProgress(70);
+                    
+                    // Generate output files
+                    generateOutputFiles(processedData);
+                    
+                    updateProgress(100);
+                    statusText.textContent = 'Processing complete!';
+                    
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    statusText.textContent = `Error: ${error.message}`;
+                    statusMessage.className = 'alert alert-danger mt-4';
+                }
+            };
+            
+            reader.onerror = function() {
+                statusText.textContent = 'Error reading file';
+                statusMessage.className = 'alert alert-danger mt-4';
+                processBtn.disabled = false;
+            };
+            
+            reader.readAsArrayBuffer(currentFile);
+        }
+
+        // Process Excel data (simplified version)
+        function processExcelData(data) {
+            // Filter columns
+            const filteredData = data.map(row => {
+                const newRow = {};
+                columnsToExtract.forEach(col => {
+                    if (col in row) {
+                        newRow[col] = row[col];
+                    }
+                });
+                return newRow;
+            });
+            
+            // Filter by valid clusters
+            const clusterFiltered = filteredData.filter(row => 
+                validClusters.includes(row['CFS Cluster'])
+            );
+            
+            return clusterFiltered;
+        }
+
+        // Generate output files
+        function generateOutputFiles(data) {
+            results.innerHTML = '<h4 class="text-success">Processing Complete!</h4><p>Download your processed files:</p>';
+            
+            // Create download links for each output file type
+            const filesToCreate = [
+                { name: 'South', data: data.filter(row => groupMapping.South.includes(row.BRGY_NAME)) },
+                { name: 'Central', data: data.filter(row => groupMapping.Central.includes(row.BRGY_NAME)) },
+                { name: 'North', data: data.filter(row => groupMapping.North.includes(row.BRGY_NAME)) },
+                { name: 'DSL', data: data.filter(row => ['VDSL', 'ADSL', 'ADSL/VDSL'].includes(row.Tech)) }
+            ];
+            
+            filesToCreate.forEach(file => {
+                if (file.data.length > 0) {
+                    // Convert to worksheet
+                    const ws = XLSX.utils.json_to_sheet(file.data);
+                    
+                    // Create workbook
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+                    
+                    // Generate Excel file
+                    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${file.name}.xlsx`;
+                    link.innerHTML = `
+                        <div class="file-item">
+                            <div>
+                                <i class="fas fa-file-excel text-success me-2"></i>
+                                ${file.name}.xlsx
+                            </div>
+                            <div class="text-muted">
+                                ${file.data.length} rows
+                                <i class="fas fa-download ms-2"></i>
+                            </div>
+                        </div>
+                    `;
+                    
+                    fileList.appendChild(link);
+                }
+            });
+            
+            if (fileList.children.length === 0) {
+                fileList.innerHTML = '<p class="text-muted">No matching data found for processing</p>';
+            }
+        }
+    </script>
+</body>
+</html>
