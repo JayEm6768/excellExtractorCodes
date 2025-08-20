@@ -14,46 +14,66 @@
         }
         
         body {
-            background-color: #f5f7fa;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             color: #333;
             line-height: 1.6;
             padding: 20px;
+            min-height: 100vh;
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #3498db, #2ecc71, #9b59b6);
         }
         
         h1 {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             color: #2c3e50;
+            font-size: 2.2rem;
         }
         
         .description {
             text-align: center;
             margin-bottom: 30px;
             color: #7f8c8d;
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
         
         .upload-section {
             border: 2px dashed #3498db;
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 40px 20px;
             text-align: center;
             margin-bottom: 30px;
             transition: all 0.3s ease;
             background-color: #f8fafc;
+            position: relative;
         }
         
         .upload-section:hover {
             background-color: #e8f4fd;
             border-color: #2980b9;
+            transform: translateY(-3px);
         }
         
         .upload-section.dragover {
@@ -66,108 +86,140 @@
         }
         
         .upload-btn {
-            background-color: #3498db;
+            background: linear-gradient(to right, #3498db, #2980b9);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
+            padding: 14px 28px;
+            border-radius: 50px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
         }
         
         .upload-btn:hover {
-            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
         }
         
         .file-info {
-            margin-top: 15px;
+            margin-top: 20px;
             font-style: italic;
+            background: #e8f4fd;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 50px;
+            color: #2980b9;
+            font-weight: 500;
         }
         
         .process-btn {
             display: block;
             width: 100%;
-            background-color: #2ecc71;
+            background: linear-gradient(to right, #2ecc71, #27ae60);
             color: white;
             border: none;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 18px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 18px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
+            font-weight: 600;
+            margin-top: 25px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
         }
         
         .process-btn:hover {
-            background-color: #27ae60;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.4);
         }
         
         .process-btn:disabled {
-            background-color: #95a5a6;
+            background: linear-gradient(to right, #95a5a6, #7f8c8d);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
         .progress-section {
-            margin-top: 30px;
+            margin-top: 40px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .progress-bar {
-            height: 20px;
+            height: 25px;
             background-color: #ecf0f1;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .progress {
             height: 100%;
-            background-color: #3498db;
+            background: linear-gradient(to right, #3498db, #2ecc71, #9b59b6);
             width: 0%;
-            transition: width 0.3s;
+            transition: width 0.5s;
+            border-radius: 12px;
         }
         
         .status {
             text-align: center;
-            margin-bottom: 10px;
-            font-weight: bold;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
         }
         
         .download-section {
-            margin-top: 30px;
+            margin-top: 40px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .download-title {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             color: #2c3e50;
+            text-align: center;
+            font-size: 1.5rem;
         }
         
         .download-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
         }
         
         .download-btn {
-            background-color: #9b59b6;
+            background: linear-gradient(to right, #9b59b6, #8e44ad);
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
+            padding: 12px 20px;
+            border-radius: 8px;
             cursor: pointer;
             text-align: left;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-weight: 500;
+            box-shadow: 0 4px 8px rgba(155, 89, 182, 0.3);
         }
         
         .download-btn:hover {
-            background-color: #8e44ad;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(155, 89, 182, 0.4);
         }
         
         .icon {
             margin-left: 10px;
+            font-size: 1.2rem;
         }
         
         .hidden {
@@ -177,14 +229,74 @@
         .error {
             color: #e74c3c;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #fadbd8;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .success {
+            color: #27ae60;
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #d5f5e3;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .instructions {
+            background: #e8f4fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h3 {
+            color: #2980b9;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .download-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Excel File Processor</h1>
-        <p class="description">Upload an Excel file to process it according to the specified business rules</p>
+        <p class="description">Upload an Excel file to process it according to the specified business rules. The tool will categorize data by region and technology type.</p>
+        
+        <div class="instructions">
+            <h3>How to use:</h3>
+            <ul>
+                <li>Upload an Excel file with the required columns (DPdeniro, S_SP, S_Total, etc.)</li>
+                <li>The processor will filter data based on CFS Cluster and Barangay groups</li>
+                <li>Files will be categorized into South, Central, and North regions</li>
+                <li>Spare files will exclude VDSL, ADSL, and ADSL/VDSL technologies</li>
+                <li>A separate DSL file will be created for those technologies</li>
+                <li>All files will include coordinate information</li>
+            </ul>
+        </div>
         
         <div class="upload-section" id="dropZone">
             <p>Drag & drop your Excel file here or</p>
@@ -210,6 +322,7 @@
         </div>
         
         <p class="error hidden" id="errorMsg"></p>
+        <p class="success hidden" id="successMsg"></p>
     </div>
 
     <script>
@@ -225,6 +338,7 @@
             const downloadSection = document.getElementById('downloadSection');
             const downloadList = document.getElementById('downloadList');
             const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
             
             let selectedFile = null;
             
@@ -270,9 +384,16 @@
                 }
                 
                 selectedFile = file;
-                fileInfo.textContent = `Selected file: ${file.name}`;
+                fileInfo.textContent = `Selected file: ${file.name} (${formatFileSize(file.size)})`;
                 processBtn.disabled = false;
                 hideError();
+                hideSuccess();
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' bytes';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                else return (bytes / 1048576).toFixed(1) + ' MB';
             }
             
             function processFile() {
@@ -280,6 +401,7 @@
                 
                 // Reset UI
                 hideError();
+                hideSuccess();
                 processBtn.disabled = true;
                 progressSection.classList.remove('hidden');
                 progressBar.style.width = '0%';
@@ -294,27 +416,33 @@
                         const workbook = XLSX.read(data, { type: 'array' });
                         
                         // Update progress
-                        progressBar.style.width = '25%';
+                        progressBar.style.width = '20%';
                         status.textContent = 'Loading data...';
                         
-                        // Process the data (simulate with setTimeout to show progress)
+                        // Process the data with more detailed steps
                         setTimeout(() => {
-                            progressBar.style.width = '50%';
+                            progressBar.style.width = '40%';
                             status.textContent = 'Filtering data...';
                             
                             setTimeout(() => {
-                                progressBar.style.width = '75%';
-                                status.textContent = 'Creating output files...';
+                                progressBar.style.width = '60%';
+                                status.textContent = 'Categorizing by region...';
                                 
                                 setTimeout(() => {
-                                    // Process the Excel data
-                                    const result = processExcelData(workbook);
+                                    progressBar.style.width = '80%';
+                                    status.textContent = 'Creating output files...';
                                     
-                                    progressBar.style.width = '100%';
-                                    status.textContent = 'Processing complete!';
-                                    
-                                    // Show download buttons
-                                    showDownloadButtons(result);
+                                    setTimeout(() => {
+                                        // Process the Excel data with more robust logic
+                                        const result = processExcelData(workbook);
+                                        
+                                        progressBar.style.width = '100%';
+                                        status.textContent = 'Processing complete!';
+                                        
+                                        // Show download buttons
+                                        showDownloadButtons(result);
+                                        showSuccess('File processed successfully! Download your files below.');
+                                    }, 800);
                                 }, 800);
                             }, 800);
                         }, 800);
@@ -326,7 +454,7 @@
                 };
                 
                 reader.onerror = function() {
-                    showError('Error reading file');
+                    showError('Error reading file. Please try again.');
                     processBtn.disabled = false;
                     progressSection.classList.add('hidden');
                 };
@@ -335,9 +463,6 @@
             }
             
             function processExcelData(workbook) {
-                // This is a simplified version of the Python processing logic
-                // In a real application, you would implement the full logic here
-                
                 // Get the first worksheet
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
@@ -388,51 +513,68 @@
                 };
                 
                 // Filter the data based on the configuration
+                // First, filter by valid clusters
                 const filteredData = jsonData.filter(row => {
                     return valid_clusters.includes(row['CFS Cluster']);
                 });
                 
-                // For demonstration purposes, we'll just create some sample output files
-                // In a real implementation, you would implement the full processing logic
+                // Extract only the columns we need
+                const extractedData = filteredData.map(row => {
+                    const newRow = {};
+                    columns_to_extract.forEach(col => {
+                        newRow[col] = row[col];
+                    });
+                    return newRow;
+                });
                 
-                const result = {
-                    "South.xlsx": filteredData.filter(row => group1_brgy.includes(row['BRGY_NAME'])),
-                    "South_Spare.xlsx": filteredData.filter(row => group1_brgy.includes(row['BRGY_NAME']))
-                                .map(row => {
-                                    if (!row['Tech'] || row['Tech'].trim() === '') {
-                                        row['Tech'] = 'GPON';
-                                    }
-                                    return row;
-                                })
-                                .filter(row => !["VDSL", "ADSL", "ADSL/VDSL"].includes(row['Tech'])),
-                    "Central.xlsx": filteredData.filter(row => group2_brgy.includes(row['BRGY_NAME'])),
-                    "Central_Spare.xlsx": filteredData.filter(row => group2_brgy.includes(row['BRGY_NAME']))
-                                .map(row => {
-                                    if (!row['Tech'] || row['Tech'].trim() === '') {
-                                        row['Tech'] = 'GPON';
-                                    }
-                                    return row;
-                                })
-                                .filter(row => !["VDSL", "ADSL", "ADSL/VDSL"].includes(row['Tech'])),
-                    "North.xlsx": filteredData.filter(row => group3_brgy.includes(row['BRGY_NAME'])),
-                    "North_Spare.xlsx": filteredData.filter(row => group3_brgy.includes(row['BRGY_NAME']))
-                                .map(row => {
-                                    if (!row['Tech'] || row['Tech'].trim() === '') {
-                                        row['Tech'] = 'GPON';
-                                    }
-                                    return row;
-                                })
-                                .filter(row => !["VDSL", "ADSL", "ADSL/VDSL"].includes(row['Tech'])),
-                    "DSL.xlsx": filteredData.filter(row => ["VDSL", "ADSL", "ADSL/VDSL"].includes(row['Tech']))
-                };
+                // Create result object with all the required files
+                const result = {};
                 
-                // Add coordinates column
-                for (const key in result) {
-                    result[key] = result[key].map(row => {
+                // Create files for each group
+                for (const [groupName, brgys] of Object.entries(group_mapping)) {
+                    // Filter data for this group
+                    const groupData = extractedData.filter(row => brgys.includes(row['BRGY_NAME']));
+                    
+                    // Add to result
+                    if (groupData.length > 0) {
+                        result[`${groupName}.xlsx`] = JSON.parse(JSON.stringify(groupData));
+                        
+                        // Create spare version
+                        const spareData = JSON.parse(JSON.stringify(groupData));
+                        
+                        // Replace blank Tech with GPON
+                        spareData.forEach(row => {
+                            if (!row['Tech'] || String(row['Tech']).trim() === '') {
+                                row['Tech'] = 'GPON';
+                            }
+                        });
+                        
+                        // Remove VDSL/ADSL/ADSL-VDSL
+                        const filteredSpareData = spareData.filter(row => 
+                            !["VDSL", "ADSL", "ADSL/VDSL"].includes(row['Tech'])
+                        );
+                        
+                        result[`${groupName} Spare.xlsx`] = filteredSpareData;
+                    }
+                }
+                
+                // Create DSL file
+                const dslData = extractedData.filter(row => 
+                    ["VDSL", "ADSL", "ADSL/VDSL"].includes(row['Tech'])
+                );
+                
+                if (dslData.length > 0) {
+                    result["DSL.xlsx"] = dslData;
+                }
+                
+                // Add coordinates column to all files
+                for (const [filename, data] of Object.entries(result)) {
+                    data.forEach(row => {
                         if (row['DP/NAP LAT'] !== undefined && row['DP/NAP LONG'] !== undefined) {
                             row['coordinates'] = `${row['DP/NAP LAT']}, ${row['DP/NAP LONG']}`;
+                        } else {
+                            row['coordinates'] = 'N/A';
                         }
-                        return row;
                     });
                 }
                 
@@ -444,20 +586,21 @@
                 downloadSection.classList.remove('hidden');
                 
                 for (const [filename, data] of Object.entries(filesData)) {
+                    if (data.length === 0) continue; // Skip empty files
+                    
                     const button = document.createElement('button');
                     button.className = 'download-btn';
-                    button.textContent = filename;
-                    
-                    const icon = document.createElement('span');
-                    icon.className = 'icon';
-                    icon.innerHTML = '⬇️';
-                    button.appendChild(icon);
+                    button.innerHTML = `${filename} <span class="icon">⬇️</span>`;
                     
                     button.addEventListener('click', () => {
                         downloadExcelFile(data, filename);
                     });
                     
                     downloadList.appendChild(button);
+                }
+                
+                if (downloadList.children.length === 0) {
+                    downloadList.innerHTML = '<p>No data matched the filtering criteria.</p>';
                 }
             }
             
@@ -480,6 +623,15 @@
             
             function hideError() {
                 errorMsg.classList.add('hidden');
+            }
+            
+            function showSuccess(message) {
+                successMsg.textContent = message;
+                successMsg.classList.remove('hidden');
+            }
+            
+            function hideSuccess() {
+                successMsg.classList.add('hidden');
             }
         });
     </script>
