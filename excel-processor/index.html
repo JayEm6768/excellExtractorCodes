@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        /* Your existing CSS styles */
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
@@ -157,6 +158,7 @@
                             <p class="text-muted">Processed files will appear here</p>
                         </div>
                         <div id="fileList" class="file-list mt-4"></div>
+                        <div id="debugInfo" class="mt-3 small text-muted" style="display: none;"></div>
                     </div>
                 </div>
             </div>
@@ -174,6 +176,7 @@
         const fileInfo = document.getElementById('fileInfo');
         const fileList = document.getElementById('fileList');
         const results = document.getElementById('results');
+        const debugInfo = document.getElementById('debugInfo');
 
         // Configuration (from Python code)
         const columnsToExtract = [
@@ -218,6 +221,7 @@
         };
 
         let currentFile = null;
+        let actualColumns = [];
 
         // Event Listeners
         fileInput.addEventListener('change', handleFileSelect);
@@ -299,6 +303,7 @@
             processBtn.disabled = true;
             fileList.innerHTML = '';
             results.innerHTML = '<p class="text-muted">Processing...</p>';
+            debugInfo.style.display = 'none';
             
             // Read the Excel file
             const reader = new FileReader();
@@ -310,6 +315,13 @@
                     // Get first sheet
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    // Get actual column names for debugging
+                    if (jsonData.length > 0) {
+                        actualColumns = Object.keys(jsonData[0]);
+                        debugInfo.innerHTML = `<strong>Actual columns found:</strong> ${actualColumns.join(', ')}`;
+                        debugInfo.style.display = 'block';
+                    }
                     
                     updateProgress(30);
                     
@@ -340,23 +352,54 @@
             reader.readAsArrayBuffer(currentFile);
         }
 
+        // Normalize column names for matching
+        function normalizeColumnName(name) {
+            if (!name) return '';
+            return name.toString()
+                .toLowerCase()
+                .replace(/\s+/g, '') // Remove all spaces
+                .replace(/\//g, '')  // Remove slashes
+                .replace(/-/g, '')   // Remove dashes
+                .replace(/_/g, '');  // Remove underscores
+        }
+
+        // Find the best matching column name
+        function findMatchingColumn(actualColumns, targetColumn) {
+            const normalizedTarget = normalizeColumnName(targetColumn);
+            
+            for (const actualCol of actualColumns) {
+                if (normalizeColumnName(actualCol) === normalizedTarget) {
+                    return actualCol;
+                }
+            }
+            
+            // Try partial matching for more flexibility
+            for (const actualCol of actualColumns) {
+                if (normalizeColumnName(actualCol).includes(normalizedTarget) || 
+                    normalizedTarget.includes(normalizeColumnName(actualCol))) {
+                    return actualCol;
+                }
+            }
+            
+            return null;
+        }
+
         // Process Excel data (full implementation of Python logic)
         function processExcelData(data) {
+            if (data.length === 0) return [];
+            
+            // Create a mapping of expected columns to actual columns
+            const columnMap = {};
+            for (const targetCol of columnsToExtract) {
+                columnMap[targetCol] = findMatchingColumn(actualColumns, targetCol) || targetCol;
+            }
+            
             // Filter columns
             const filteredData = data.map(row => {
                 const newRow = {};
-                columnsToExtract.forEach(col => {
-                    // Handle different column name formats
-                    const colKey = Object.keys(row).find(key => 
-                        key.toLowerCase().replace(/\s+/g, '') === col.toLowerCase().replace(/\s+/g, '')
-                    );
-                    
-                    if (colKey) {
-                        newRow[col] = row[colKey];
-                    } else {
-                        newRow[col] = null;
-                    }
-                });
+                for (const [targetCol, actualCol] of Object.entries(columnMap)) {
+                    newRow[targetCol] = row[actualCol] !== undefined ? row[actualCol] : null;
+                }
                 return newRow;
             });
             
@@ -364,8 +407,10 @@
             const clusterFiltered = filteredData.filter(row => {
                 if (!row['CFS Cluster']) return false;
                 
+                const clusterValue = String(row['CFS Cluster']).toUpperCase();
                 return validClusters.some(cluster => 
-                    row['CFS Cluster'].toString().toUpperCase() === cluster.toUpperCase()
+                    clusterValue.includes(cluster.toUpperCase()) || 
+                    cluster.toUpperCase().includes(clusterValue)
                 );
             });
             
@@ -376,6 +421,22 @@
         function generateOutputFiles(data) {
             results.innerHTML = '<h4 class="text-success">Processing Complete!</h4><p>Download your processed files:</p>';
             
+            if (data.length === 0) {
+                fileList.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No matching data found for processing. This could be because:
+                        <ul>
+                            <li>Your Excel file doesn't have the expected columns</li>
+                            <li>No rows match the required clusters: ${validClusters.join(', ')}</li>
+                            <li>The column names might be different than expected</li>
+                        </ul>
+                    </div>
+                    <p class="text-muted">Expected columns: ${columnsToExtract.join(', ')}</p>
+                `;
+                return;
+            }
+            
             // Create files for each region group
             const regionFiles = {};
             
@@ -384,9 +445,12 @@
                 const regionData = data.filter(row => {
                     if (!row['BRGY_NAME']) return false;
                     
+                    const barangayName = String(row['BRGY_NAME']).toLowerCase();
                     // Case-insensitive comparison
                     return barangays.some(barangay => 
-                        row['BRGY_NAME'].toString().toLowerCase() === barangay.toLowerCase()
+                        barangayName === barangay.toLowerCase() ||
+                        barangayName.includes(barangay.toLowerCase()) ||
+                        barangay.toLowerCase().includes(barangayName)
                     );
                 });
                 
@@ -398,15 +462,17 @@
                         const newRow = {...row};
                         
                         // Replace blank Tech with "GPON"
-                        if (!newRow['Tech'] || newRow['Tech'].toString().trim() === '') {
+                        if (!newRow['Tech'] || String(newRow['Tech']).trim() === '') {
                             newRow['Tech'] = 'GPON';
                         }
                         
                         return newRow;
                     }).filter(row => {
                         // Remove VDSL, ADSL, ADSL/VDSL
-                        const tech = row['Tech'] ? row['Tech'].toString().toUpperCase() : '';
-                        return !['VDSL', 'ADSL', 'ADSL/VDSL'].includes(tech);
+                        const tech = row['Tech'] ? String(row['Tech']).toUpperCase() : '';
+                        return !['VDSL', 'ADSL', 'ADSL/VDSL'].some(dslType => 
+                            tech.includes(dslType) || dslType.includes(tech)
+                        );
                     });
                     
                     if (spareData.length > 0) {
@@ -419,8 +485,10 @@
             const dslData = data.filter(row => {
                 if (!row['Tech']) return false;
                 
-                const tech = row['Tech'].toString().toUpperCase();
-                return ['VDSL', 'ADSL', 'ADSL/VDSL'].includes(tech);
+                const tech = String(row['Tech']).toUpperCase();
+                return ['VDSL', 'ADSL', 'ADSL/VDSL'].some(dslType => 
+                    tech.includes(dslType) || dslType.includes(tech)
+                );
             });
             
             if (dslData.length > 0) {
@@ -433,7 +501,7 @@
                     const newRow = {...row};
                     
                     // Add coordinates column
-                    if (newRow['DP/NAP LAT'] && newRow['DP/NAP LONG']) {
+                    if (newRow['DP/NAP LAT'] !== null && newRow['DP/NAP LONG'] !== null) {
                         newRow['coordinates'] = `${newRow['DP/NAP LAT']}, ${newRow['DP/NAP LONG']}`;
                     } else {
                         newRow['coordinates'] = '';
