@@ -313,7 +313,7 @@
                     
                     updateProgress(30);
                     
-                    // Process the data (simplified version of the Python code)
+                    // Process the data (using the full Python logic)
                     const processedData = processExcelData(jsonData);
                     
                     updateProgress(70);
@@ -340,23 +340,34 @@
             reader.readAsArrayBuffer(currentFile);
         }
 
-        // Process Excel data (simplified version)
+        // Process Excel data (full implementation of Python logic)
         function processExcelData(data) {
             // Filter columns
             const filteredData = data.map(row => {
                 const newRow = {};
                 columnsToExtract.forEach(col => {
-                    if (col in row) {
-                        newRow[col] = row[col];
+                    // Handle different column name formats
+                    const colKey = Object.keys(row).find(key => 
+                        key.toLowerCase().replace(/\s+/g, '') === col.toLowerCase().replace(/\s+/g, '')
+                    );
+                    
+                    if (colKey) {
+                        newRow[col] = row[colKey];
+                    } else {
+                        newRow[col] = null;
                     }
                 });
                 return newRow;
             });
             
-            // Filter by valid clusters
-            const clusterFiltered = filteredData.filter(row => 
-                validClusters.includes(row['CFS Cluster'])
-            );
+            // Filter by valid clusters (case insensitive)
+            const clusterFiltered = filteredData.filter(row => {
+                if (!row['CFS Cluster']) return false;
+                
+                return validClusters.some(cluster => 
+                    row['CFS Cluster'].toString().toUpperCase() === cluster.toUpperCase()
+                );
+            });
             
             return clusterFiltered;
         }
@@ -365,18 +376,82 @@
         function generateOutputFiles(data) {
             results.innerHTML = '<h4 class="text-success">Processing Complete!</h4><p>Download your processed files:</p>';
             
-            // Create download links for each output file type
-            const filesToCreate = [
-                { name: 'South', data: data.filter(row => groupMapping.South.includes(row.BRGY_NAME)) },
-                { name: 'Central', data: data.filter(row => groupMapping.Central.includes(row.BRGY_NAME)) },
-                { name: 'North', data: data.filter(row => groupMapping.North.includes(row.BRGY_NAME)) },
-                { name: 'DSL', data: data.filter(row => ['VDSL', 'ADSL', 'ADSL/VDSL'].includes(row.Tech)) }
-            ];
+            // Create files for each region group
+            const regionFiles = {};
             
-            filesToCreate.forEach(file => {
-                if (file.data.length > 0) {
+            // Process each region group
+            for (const [region, barangays] of Object.entries(groupMapping)) {
+                const regionData = data.filter(row => {
+                    if (!row['BRGY_NAME']) return false;
+                    
+                    // Case-insensitive comparison
+                    return barangays.some(barangay => 
+                        row['BRGY_NAME'].toString().toLowerCase() === barangay.toLowerCase()
+                    );
+                });
+                
+                if (regionData.length > 0) {
+                    regionFiles[region] = regionData;
+                    
+                    // Create spare files (replace blank Tech with "GPON" and remove DSL types)
+                    const spareData = regionData.map(row => {
+                        const newRow = {...row};
+                        
+                        // Replace blank Tech with "GPON"
+                        if (!newRow['Tech'] || newRow['Tech'].toString().trim() === '') {
+                            newRow['Tech'] = 'GPON';
+                        }
+                        
+                        return newRow;
+                    }).filter(row => {
+                        // Remove VDSL, ADSL, ADSL/VDSL
+                        const tech = row['Tech'] ? row['Tech'].toString().toUpperCase() : '';
+                        return !['VDSL', 'ADSL', 'ADSL/VDSL'].includes(tech);
+                    });
+                    
+                    if (spareData.length > 0) {
+                        regionFiles[`${region} Spare`] = spareData;
+                    }
+                }
+            }
+            
+            // Create DSL file
+            const dslData = data.filter(row => {
+                if (!row['Tech']) return false;
+                
+                const tech = row['Tech'].toString().toUpperCase();
+                return ['VDSL', 'ADSL', 'ADSL/VDSL'].includes(tech);
+            });
+            
+            if (dslData.length > 0) {
+                regionFiles['DSL'] = dslData;
+            }
+            
+            // Add coordinates to all data
+            Object.keys(regionFiles).forEach(key => {
+                regionFiles[key] = regionFiles[key].map(row => {
+                    const newRow = {...row};
+                    
+                    // Add coordinates column
+                    if (newRow['DP/NAP LAT'] && newRow['DP/NAP LONG']) {
+                        newRow['coordinates'] = `${newRow['DP/NAP LAT']}, ${newRow['DP/NAP LONG']}`;
+                    } else {
+                        newRow['coordinates'] = '';
+                    }
+                    
+                    return newRow;
+                });
+            });
+            
+            // Create download links
+            let hasFiles = false;
+            
+            for (const [name, fileData] of Object.entries(regionFiles)) {
+                if (fileData.length > 0) {
+                    hasFiles = true;
+                    
                     // Convert to worksheet
-                    const ws = XLSX.utils.json_to_sheet(file.data);
+                    const ws = XLSX.utils.json_to_sheet(fileData);
                     
                     // Create workbook
                     const wb = XLSX.utils.book_new();
@@ -390,15 +465,15 @@
                     // Create download link
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = `${file.name}.xlsx`;
+                    link.download = `${name}.xlsx`;
                     link.innerHTML = `
                         <div class="file-item">
                             <div>
                                 <i class="fas fa-file-excel text-success me-2"></i>
-                                ${file.name}.xlsx
+                                ${name}.xlsx
                             </div>
                             <div class="text-muted">
-                                ${file.data.length} rows
+                                ${fileData.length} rows
                                 <i class="fas fa-download ms-2"></i>
                             </div>
                         </div>
@@ -406,10 +481,17 @@
                     
                     fileList.appendChild(link);
                 }
-            });
+            }
             
-            if (fileList.children.length === 0) {
-                fileList.innerHTML = '<p class="text-muted">No matching data found for processing</p>';
+            if (!hasFiles) {
+                fileList.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No matching data found for processing. Please check if your Excel file has the correct format.
+                    </div>
+                    <p class="text-muted">Required columns: ${columnsToExtract.join(', ')}</p>
+                    <p class="text-muted">Required clusters: ${validClusters.join(', ')}</p>
+                `;
             }
         }
     </script>
