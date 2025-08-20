@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* Your existing CSS styles */
         body {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
@@ -66,6 +65,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.2s;
+        }
+        .file-item:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
         }
         .step-number {
             display: inline-block;
@@ -86,6 +90,11 @@
         .highlight {
             color: #4b6cb7;
             font-weight: bold;
+        }
+        .debug-info {
+            font-size: 0.8rem;
+            background-color: #f8f9fa;
+            border-left: 4px solid #4b6cb7;
         }
     </style>
 </head>
@@ -158,7 +167,7 @@
                             <p class="text-muted">Processed files will appear here</p>
                         </div>
                         <div id="fileList" class="file-list mt-4"></div>
-                        <div id="debugInfo" class="mt-3 small text-muted" style="display: none;"></div>
+                        <div id="debugInfo" class="debug-info p-3 mt-3" style="display: none;"></div>
                     </div>
                 </div>
             </div>
@@ -213,12 +222,6 @@
             'Alejandra Navarro', 'Tagpore',
             'Tibungco', 'Communal', 'San Isidro', 'Acacia','Tigatto'
         ];
-
-        const groupMapping = {
-            "South": group1_brgy,
-            "Central": group2_brgy,
-            "North": group3_brgy
-        };
 
         let currentFile = null;
         let actualColumns = [];
@@ -293,65 +296,6 @@
             progressBar.textContent = `${percent}%`;
         }
 
-        // Process data function
-        function processData() {
-            if (!currentFile) return;
-            
-            // Reset UI
-            updateProgress(0);
-            statusText.textContent = 'Processing file...';
-            processBtn.disabled = true;
-            fileList.innerHTML = '';
-            results.innerHTML = '<p class="text-muted">Processing...</p>';
-            debugInfo.style.display = 'none';
-            
-            // Read the Excel file
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    
-                    // Get first sheet
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                    
-                    // Get actual column names for debugging
-                    if (jsonData.length > 0) {
-                        actualColumns = Object.keys(jsonData[0]);
-                        debugInfo.innerHTML = `<strong>Actual columns found:</strong> ${actualColumns.join(', ')}`;
-                        debugInfo.style.display = 'block';
-                    }
-                    
-                    updateProgress(30);
-                    
-                    // Process the data (using the full Python logic)
-                    const processedData = processExcelData(jsonData);
-                    
-                    updateProgress(70);
-                    
-                    // Generate output files
-                    generateOutputFiles(processedData);
-                    
-                    updateProgress(100);
-                    statusText.textContent = 'Processing complete!';
-                    
-                } catch (error) {
-                    console.error('Error processing file:', error);
-                    statusText.textContent = `Error: ${error.message}`;
-                    statusMessage.className = 'alert alert-danger mt-4';
-                }
-            };
-            
-            reader.onerror = function() {
-                statusText.textContent = 'Error reading file';
-                statusMessage.className = 'alert alert-danger mt-4';
-                processBtn.disabled = false;
-            };
-            
-            reader.readAsArrayBuffer(currentFile);
-        }
-
         // Normalize column names for matching
         function normalizeColumnName(name) {
             if (!name) return '';
@@ -403,14 +347,13 @@
                 return newRow;
             });
             
-            // Filter by valid clusters (case insensitive)
+            // Filter by valid clusters (case insensitive) - FIXED
             const clusterFiltered = filteredData.filter(row => {
                 if (!row['CFS Cluster']) return false;
                 
-                const clusterValue = String(row['CFS Cluster']).toUpperCase();
+                const clusterValue = String(row['CFS Cluster']).toUpperCase().trim();
                 return validClusters.some(cluster => 
-                    clusterValue.includes(cluster.toUpperCase()) || 
-                    cluster.toUpperCase().includes(clusterValue)
+                    clusterValue === cluster.toUpperCase()
                 );
             });
             
@@ -440,76 +383,37 @@
             // Create files for each region group
             const regionFiles = {};
             
-            // Process each region group
-            for (const [region, barangays] of Object.entries(groupMapping)) {
-                const regionData = data.filter(row => {
-                    if (!row['BRGY_NAME']) return false;
-                    
-                    const barangayName = String(row['BRGY_NAME']).toLowerCase();
-                    // Case-insensitive comparison
-                    return barangays.some(barangay => 
-                        barangayName === barangay.toLowerCase() ||
-                        barangayName.includes(barangay.toLowerCase()) ||
-                        barangay.toLowerCase().includes(barangayName)
-                    );
-                });
-                
-                if (regionData.length > 0) {
-                    regionFiles[region] = regionData;
-                    
-                    // Create spare files (replace blank Tech with "GPON" and remove DSL types)
-                    const spareData = regionData.map(row => {
-                        const newRow = {...row};
-                        
-                        // Replace blank Tech with "GPON"
-                        if (!newRow['Tech'] || String(newRow['Tech']).trim() === '') {
-                            newRow['Tech'] = 'GPON';
-                        }
-                        
-                        return newRow;
-                    }).filter(row => {
-                        // Remove VDSL, ADSL, ADSL/VDSL
-                        const tech = row['Tech'] ? String(row['Tech']).toUpperCase() : '';
-                        return !['VDSL', 'ADSL', 'ADSL/VDSL'].some(dslType => 
-                            tech.includes(dslType) || dslType.includes(tech)
-                        );
-                    });
-                    
-                    if (spareData.length > 0) {
-                        regionFiles[`${region} Spare`] = spareData;
-                    }
-                }
-            }
-            
-            // Create DSL file
-            const dslData = data.filter(row => {
-                if (!row['Tech']) return false;
-                
-                const tech = String(row['Tech']).toUpperCase();
-                return ['VDSL', 'ADSL', 'ADSL/VDSL'].some(dslType => 
-                    tech.includes(dslType) || dslType.includes(tech)
-                );
+            // Process each region group - FIXED to match Python logic
+            const df_group1 = data.filter(row => {
+                if (!row['BRGY_NAME']) return false;
+                const barangayName = String(row['BRGY_NAME']).trim();
+                return group1_brgy.some(barangay => barangayName === barangay);
             });
             
-            if (dslData.length > 0) {
-                regionFiles['DSL'] = dslData;
+            const df_group2 = data.filter(row => {
+                if (!row['BRGY_NAME']) return false;
+                const barangayName = String(row['BRGY_NAME']).trim();
+                return group2_brgy.some(barangay => barangayName === barangay);
+            });
+            
+            const df_group3 = data.filter(row => {
+                if (!row['BRGY_NAME']) return false;
+                const barangayName = String(row['BRGY_NAME']).trim();
+                return group3_brgy.some(barangay => barangayName === barangay);
+            });
+            
+            // Assign to regionFiles with appropriate names
+            if (df_group1.length > 0) {
+                regionFiles['Group1_Urban_Core_Bucana'] = df_group1;
             }
             
-            // Add coordinates to all data
-            Object.keys(regionFiles).forEach(key => {
-                regionFiles[key] = regionFiles[key].map(row => {
-                    const newRow = {...row};
-                    
-                    // Add coordinates column
-                    if (newRow['DP/NAP LAT'] !== null && newRow['DP/NAP LONG'] !== null) {
-                        newRow['coordinates'] = `${newRow['DP/NAP LAT']}, ${newRow['DP/NAP LONG']}`;
-                    } else {
-                        newRow['coordinates'] = '';
-                    }
-                    
-                    return newRow;
-                });
-            });
+            if (df_group2.length > 0) {
+                regionFiles['Group2_Jade_Valley_Tigatto_Airport'] = df_group2;
+            }
+            
+            if (df_group3.length > 0) {
+                regionFiles['Group3_Cabantian_Mandug_Panacan'] = df_group3;
+            }
             
             // Create download links
             let hasFiles = false;
@@ -561,6 +465,66 @@
                     <p class="text-muted">Required clusters: ${validClusters.join(', ')}</p>
                 `;
             }
+        }
+
+        // Process data function
+        function processData() {
+            if (!currentFile) return;
+            
+            // Reset UI
+            updateProgress(0);
+            statusText.textContent = 'Processing file...';
+            statusMessage.className = 'alert alert-info mt-4';
+            processBtn.disabled = true;
+            fileList.innerHTML = '';
+            results.innerHTML = '<p class="text-muted">Processing...</p>';
+            debugInfo.style.display = 'none';
+            
+            // Read the Excel file
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // Get first sheet
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    // Get actual column names for debugging
+                    if (jsonData.length > 0) {
+                        actualColumns = Object.keys(jsonData[0]);
+                        debugInfo.innerHTML = `<strong>Actual columns found:</strong> ${actualColumns.join(', ')}`;
+                        debugInfo.style.display = 'block';
+                    }
+                    
+                    updateProgress(30);
+                    
+                    // Process the data (using the full Python logic)
+                    const processedData = processExcelData(jsonData);
+                    
+                    updateProgress(70);
+                    
+                    // Generate output files
+                    generateOutputFiles(processedData);
+                    
+                    updateProgress(100);
+                    statusText.textContent = 'Processing complete!';
+                    
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    statusText.textContent = `Error: ${error.message}`;
+                    statusMessage.className = 'alert alert-danger mt-4';
+                }
+            };
+            
+            reader.onerror = function() {
+                statusText.textContent = 'Error reading file';
+                statusMessage.className = 'alert alert-danger mt-4';
+                processBtn.disabled = false;
+            };
+            
+            reader.readAsArrayBuffer(currentFile);
         }
     </script>
 </body>
