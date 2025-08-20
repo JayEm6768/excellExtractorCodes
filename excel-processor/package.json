@@ -1,0 +1,8 @@
+{
+  "name": "excel-processor",
+  "version": "1.0.0",
+  "description": "Excel processing web application",
+  "scripts": {
+    "build": "echo 'No build step required for static site'"
+  }
+}
