@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont
 
-# Configuration - same as your original code
+
 columns_to_extract = [
     'DPdeniro', 'S_SP', 'S_Total', 'Com Date',
     'DP/NAP LAT', 'DP/NAP LONG', 'BRGY_NAME',
