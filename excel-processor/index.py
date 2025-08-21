@@ -414,3 +414,5 @@ if __name__ == "__main__":
     window.show()
     
     sys.exit(app.exec_())
+
+    # created August 20 2025 :)
