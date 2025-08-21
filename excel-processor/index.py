@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QPushButton, QLabel, QFileDialog, QProgressBar, QMessageBox,
                              QListWidget, QSplitter, QTextEdit, QGroupBox)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QFont, QPalette, QColor
+from PyQt5.QtGui import QFont
 
 # Configuration - same as your original code
 columns_to_extract = [
@@ -33,14 +33,14 @@ group1_brgy = [
 
 group2_brgy = [
     'Rafael Castillo', 'Sasa', 'Vicente Hizon Sr.', 
-    'Ubalde', 'Wilfredo Aquino', 'Ilang', 'Pampanga',
+    'Ubalde', 'Wilfredo Aquino', 'Pampanga',
     'Buhangin', 'Alfonso Angliongto Sr.'
 ]
 
 group3_brgy = [
     'Cabantian', 'Mandug', 'Panacan', 'Bunawan', 'Indangan', 
     'Alejandra Navarro', 'Tagpore',
-    'Tibungco', 'Communal', 'San Isidro', 'Acacia','Tigatto'
+    'Tibungco', 'Communal', 'San Isidro', 'Acacia','Tigatto','Ilang'
 ]
 
 group_mapping = {
@@ -84,7 +84,16 @@ class ExcelProcessor(QThread):
             output_files = {}
             
             for name, brgys in group_mapping.items():
+                # Filter by barangay
                 filtered = df[df['BRGY_NAME'].isin(brgys)]
+                
+                # For Group 1 (South), only include Davao North entries
+                if name == "South":
+                    filtered = filtered[filtered['CFS Cluster'] == "DAVAO NORTH"]
+                # For Central and North, exclude Davao South
+                elif name in ["Central", "North"]:
+                    filtered = filtered[filtered['CFS Cluster'] != "DAVAO SOUTH"]
+                
                 if not filtered.empty:
                     # Save the main file
                     main_filename = f"{name}.xlsx"
@@ -105,8 +114,11 @@ class ExcelProcessor(QThread):
             self.status_updated.emit("Creating DSL file...")
             self.progress_updated.emit(70)
             
-            # Create DSL file
+            # Create DSL file - only from Davao North cluster
             dsl_data = df[df['Tech'].isin(["VDSL", "ADSL", "ADSL/VDSL"])]
+            # Apply the Davao North constraint
+            dsl_data = dsl_data[dsl_data['CFS Cluster'] == "DAVAO NORTH"]
+            
             if not dsl_data.empty:
                 dsl_filepath = os.path.join(self.output_dir, "DSL.xlsx")
                 dsl_data.to_excel(dsl_filepath, index=False)
@@ -224,12 +236,25 @@ class ExcelProcessorApp(QMainWindow):
         # Description
         description = QLabel(
             "This tool processes Excel files by filtering data based on CFS Cluster and Barangay, "
-            "then categorizes the data into regional groups and technology types."
+            "then categorizes the data into regional groups and technology types. "
+            "South file only includes entries from Davao North CFS cluster."
         )
         description.setWordWrap(True)
         description.setAlignment(Qt.AlignCenter)
         description.setStyleSheet("color: #7f8c8d; padding: 0 0 15px 0;")
         layout.addWidget(description)
+        
+        # Requirements box
+        requirements = QLabel(
+            "Requirements:\n"
+            "- All files: Filtered by valid CFS clusters (Davao North, Davao South, Tagum 1, Tagum 2)\n"
+            "- South file: Only includes Davao North entries from Group 1 barangays\n"
+            "- Central/North files: Include Tagum 1 and Tagum 2 clusters (exclude Davao South)\n"
+            "- DSL file: Only includes VDSL/ADSL technologies from Davao North cluster"
+        )
+        requirements.setWordWrap(True)
+        requirements.setStyleSheet("background-color: #e8f4fd; padding: 10px; border-radius: 5px;")
+        layout.addWidget(requirements)
         
         # Splitter for main content
         splitter = QSplitter(Qt.Vertical)
