@@ -58,8 +58,15 @@ class ExcelProcessor(QThread):
             self.status_updated.emit("Adding coordinates...")
             df['coordinates'] = df['DP/NAP LAT'].astype(str) + ", " + df['DP/NAP LONG'].astype(str)
 
-            # Split into chunks of 2000
             output_files = []
+
+            # Save compiled file (full filtered dataset)
+            compiled_filename = f"{self.selected_cluster}_compiled.xlsx"
+            compiled_filepath = os.path.join(self.output_dir, compiled_filename)
+            df.to_excel(compiled_filepath, index=False)
+            output_files.append(compiled_filepath)
+
+            # Split into chunks of 2000
             num_chunks = math.ceil(len(df) / 2000)
             for i in range(num_chunks):
                 chunk = df.iloc[i*2000:(i+1)*2000]
@@ -117,6 +124,16 @@ class ExcelProcessorApp(QMainWindow):
         btn_layout.addWidget(self.file_label)
         file_layout.addLayout(btn_layout)
 
+        # ⚠ Warning note
+        warning_label = QLabel("⚠ Please close all related Excel files before processing.\n"
+                               "This ensures smooth performance and faster completion.")
+        warning_font = QFont()
+        warning_font.setPointSize(10)
+        warning_font.setBold(True)
+        warning_label.setFont(warning_font)
+        warning_label.setStyleSheet("color: red;")
+        file_layout.addWidget(warning_label)
+
         # Cluster dropdown
         self.cluster_dropdown = QComboBox()
         self.cluster_dropdown.addItems(valid_clusters)
@@ -173,6 +190,9 @@ class ExcelProcessorApp(QMainWindow):
         self.status_label.setText("Processing...")
         self.progress_bar.setValue(0)
 
+        # 🔒 Disable process button while running
+        self.process_btn.setEnabled(False)
+
         self.processor = ExcelProcessor(self.input_filepath, self.output_dir, self.selected_cluster)
         self.processor.progress_updated.connect(self.progress_bar.setValue)
         self.processor.status_updated.connect(self.status_label.setText)
@@ -185,6 +205,9 @@ class ExcelProcessorApp(QMainWindow):
         for f in files:
             self.output_list.addItem(os.path.basename(f))
         self.open_folder_btn.setEnabled(True)
+
+        # ✅ Re-enable process button
+        self.process_btn.setEnabled(True)
 
         # Auto open the folder after processing
         self.open_output_folder()
@@ -202,6 +225,9 @@ class ExcelProcessorApp(QMainWindow):
     def show_error(self, msg):
         self.status_label.setText("Error")
         QMessageBox.critical(self, "Error", msg)
+
+        # ✅ Re-enable process button after error
+        self.process_btn.setEnabled(True)
 
 
 if __name__ == "__main__":
