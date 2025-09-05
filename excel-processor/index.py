@@ -56,11 +56,40 @@ class ExcelProcessor(QThread):
     status_updated = pyqtSignal(str)
     processing_finished = pyqtSignal(dict)
     error_occurred = pyqtSignal(str)
+    debug_info = pyqtSignal(str)
 
     def __init__(self, input_filepath, output_dir):
         super().__init__()
         self.input_filepath = input_filepath
         self.output_dir = output_dir
+
+    def clean_barangay_name(self, name):
+        """Clean barangay name by removing extra text like (POB.) and trimming whitespace"""
+        if pd.isna(name):
+            return name
+        name = str(name).strip()
+        # Remove (POB.) and similar suffixes
+        name = name.split('(')[0].strip()
+        # Remove any trailing special characters
+        name = name.rstrip('.) ')
+        return name
+
+    def match_barangay(self, actual_name, target_names):
+        """Flexible matching of barangay names"""
+        if pd.isna(actual_name):
+            return False
+        
+        actual_clean = self.clean_barangay_name(actual_name)
+        
+        for target_name in target_names:
+            target_clean = self.clean_barangay_name(target_name)
+            # Check if the cleaned names match (case insensitive)
+            if actual_clean.lower() == target_clean.lower():
+                return True
+            # Also check if the target is contained in the actual name
+            if target_clean.lower() in actual_clean.lower():
+                return True
+        return False
 
     def run(self):
         try:
@@ -70,12 +99,48 @@ class ExcelProcessor(QThread):
             # Load the Excel file
             df = pd.read_excel(self.input_filepath)
             
+            # DEBUG: Show column names and first few rows
+            self.debug_info.emit(f"Original DataFrame shape: {df.shape}")
+            self.debug_info.emit(f"Columns in file: {list(df.columns)}")
+            
             self.status_updated.emit("Filtering data...")
             self.progress_updated.emit(30)
             
+            # Check if all required columns exist
+            missing_columns = [col for col in columns_to_extract if col not in df.columns]
+            if missing_columns:
+                self.debug_info.emit(f"WARNING: Missing columns: {missing_columns}")
+                # Try to find similar column names
+                for missing_col in missing_columns:
+                    similar_cols = [col for col in df.columns if missing_col.lower() in col.lower()]
+                    if similar_cols:
+                        self.debug_info.emit(f"  Similar columns found for '{missing_col}': {similar_cols}")
+            
             # Filter columns and clusters
             df = df[columns_to_extract]
+            
+            # Clean barangay names in the dataframe
+            df['BRGY_NAME_CLEAN'] = df['BRGY_NAME'].apply(self.clean_barangay_name)
+            self.debug_info.emit(f"After column filtering shape: {df.shape}")
+            
+            # Check cluster values
+            cluster_values = df['CFS Cluster'].unique() if 'CFS Cluster' in df.columns else []
+            self.debug_info.emit(f"Unique CFS Cluster values: {cluster_values}")
+            
             df = df[df['CFS Cluster'].isin(valid_clusters)]
+            self.debug_info.emit(f"After cluster filtering shape: {df.shape}")
+            
+            # Check barangay values
+            barangay_values = df['BRGY_NAME'].unique() if 'BRGY_NAME' in df.columns else []
+            self.debug_info.emit(f"Unique BRGY_NAME values: {barangay_values[:20]}")  # First 20 only
+            
+            # Check cleaned barangay values
+            cleaned_barangay_values = df['BRGY_NAME_CLEAN'].unique() if 'BRGY_NAME_CLEAN' in df.columns else []
+            self.debug_info.emit(f"Unique cleaned BRGY_NAME values: {cleaned_barangay_values[:20]}")
+            
+            # Check tech values
+            tech_values = df['Tech'].unique() if 'Tech' in df.columns else []
+            self.debug_info.emit(f"Unique Tech values: {tech_values}")
             
             self.status_updated.emit("Processing barangay groups...")
             self.progress_updated.emit(50)
@@ -84,45 +149,64 @@ class ExcelProcessor(QThread):
             output_files = {}
             
             for name, brgys in group_mapping.items():
-                # Filter by barangay
-                filtered = df[df['BRGY_NAME'].isin(brgys)]
+                self.debug_info.emit(f"\nProcessing {name} group...")
                 
-                # For Group 1 (South), only include Davao North entries
+                # Filter by barangay using flexible matching
+                filtered = df[df['BRGY_NAME_CLEAN'].apply(lambda x: self.match_barangay(x, brgys))]
+                self.debug_info.emit(f"After barangay filtering: {filtered.shape[0]} rows")
+                
+                # Apply cluster-specific filtering
                 if name == "South":
+                    # For South group, only include Davao North entries
                     filtered = filtered[filtered['CFS Cluster'] == "DAVAO NORTH"]
-                # For Central and North, exclude Davao South
+                    self.debug_info.emit(f"After DAVAO NORTH filter: {filtered.shape[0]} rows")
                 elif name in ["Central", "North"]:
+                    # For Central and North, exclude Davao South
                     filtered = filtered[filtered['CFS Cluster'] != "DAVAO SOUTH"]
+                    self.debug_info.emit(f"After excluding DAVAO SOUTH: {filtered.shape[0]} rows")
                 
-                if not filtered.empty:
-                    # Save the main file
-                    main_filename = f"{name}.xlsx"
-                    main_filepath = os.path.join(self.output_dir, main_filename)
-                    filtered.to_excel(main_filepath, index=False)
-                    output_files[main_filename] = main_filepath
-                    
-                    # Create spare file
-                    spare_data = filtered.copy()
-                    spare_data['Tech'] = spare_data['Tech'].replace(" ", "GPON")
-                    spare_data = spare_data[~spare_data['Tech'].isin(["VDSL", "ADSL", "ADSL/VDSL"])]
-                    
-                    spare_filename = f"{name} Spare.xlsx"
-                    spare_filepath = os.path.join(self.output_dir, spare_filename)
-                    spare_data.to_excel(spare_filepath, index=False)
-                    output_files[spare_filename] = spare_filepath
+                # Remove the temporary clean column before saving
+                filtered_to_save = filtered.drop(columns=['BRGY_NAME_CLEAN'], errors='ignore')
+                
+                # Create main file even if empty to ensure all files are generated
+                main_filename = f"{name}.xlsx"
+                main_filepath = os.path.join(self.output_dir, main_filename)
+                filtered_to_save.to_excel(main_filepath, index=False)
+                output_files[main_filename] = main_filepath
+                self.debug_info.emit(f"Created {main_filename} with {filtered.shape[0]} rows")
+                
+                # Create spare file
+                spare_data = filtered.copy()
+                spare_data['Tech'] = spare_data['Tech'].fillna("GPON")
+                spare_data['Tech'] = spare_data['Tech'].replace(" ", "GPON")
+                spare_data = spare_data[~spare_data['Tech'].isin(["VDSL", "ADSL", "ADSL/VDSL"])]
+                spare_data = spare_data.drop(columns=['BRGY_NAME_CLEAN'], errors='ignore')
+                
+                spare_filename = f"{name} Spare.xlsx"
+                spare_filepath = os.path.join(self.output_dir, spare_filename)
+                spare_data.to_excel(spare_filepath, index=False)
+                output_files[spare_filename] = spare_filepath
+                self.debug_info.emit(f"Created {spare_filename} with {spare_data.shape[0]} rows")
             
             self.status_updated.emit("Creating DSL file...")
             self.progress_updated.emit(70)
             
-            # Create DSL file - only from Davao North cluster
-            dsl_data = df[df['Tech'].isin(["VDSL", "ADSL", "ADSL/VDSL"])]
+            # Create DSL file - only from Davao North cluster with DSL technologies
+            dsl_data = df[df['Tech'].isin(["VDSL", 'ADSL', 'ADSL/VDSL'])]
+            self.debug_info.emit(f"DSL technologies found: {dsl_data.shape[0]} rows")
+            
             # Apply the Davao North constraint
             dsl_data = dsl_data[dsl_data['CFS Cluster'] == "DAVAO NORTH"]
+            self.debug_info.emit(f"DSL from DAVAO NORTH: {dsl_data.shape[0]} rows")
             
-            if not dsl_data.empty:
-                dsl_filepath = os.path.join(self.output_dir, "DSL.xlsx")
-                dsl_data.to_excel(dsl_filepath, index=False)
-                output_files["DSL.xlsx"] = dsl_filepath
+            # Remove the temporary clean column before saving
+            dsl_data = dsl_data.drop(columns=['BRGY_NAME_CLEAN'], errors='ignore')
+            
+            # Create DSL file even if empty
+            dsl_filepath = os.path.join(self.output_dir, "DSL.xlsx")
+            dsl_data.to_excel(dsl_filepath, index=False)
+            output_files["DSL.xlsx"] = dsl_filepath
+            self.debug_info.emit(f"Created DSL.xlsx with {dsl_data.shape[0]} rows")
             
             self.status_updated.emit("Adding coordinates...")
             self.progress_updated.emit(90)
@@ -133,15 +217,21 @@ class ExcelProcessor(QThread):
                     filepath = os.path.join(self.output_dir, filename)
                     data = pd.read_excel(filepath)
                     if 'DP/NAP LAT' in data.columns and 'DP/NAP LONG' in data.columns:
+                        # Handle NaN values in coordinates
+                        data['DP/NAP LAT'] = data['DP/NAP LAT'].fillna('')
+                        data['DP/NAP LONG'] = data['DP/NAP LONG'].fillna('')
                         data['coordinates'] = data['DP/NAP LAT'].astype(str) + ", " + data['DP/NAP LONG'].astype(str)
                     data.to_excel(filepath, index=False)
             
             self.progress_updated.emit(100)
             self.status_updated.emit("Processing complete!")
+            self.debug_info.emit(f"Final output: {len(output_files)} files created")
             self.processing_finished.emit(output_files)
             
         except Exception as e:
             self.error_occurred.emit(str(e))
+            import traceback
+            self.debug_info.emit(f"Error details: {traceback.format_exc()}")
 
 
 class ExcelProcessorApp(QMainWindow):
@@ -360,6 +450,7 @@ class ExcelProcessorApp(QMainWindow):
         self.processor.status_updated.connect(self.update_status)
         self.processor.processing_finished.connect(self.processing_finished)
         self.processor.error_occurred.connect(self.processing_error)
+        self.processor.debug_info.connect(self.log)
         self.processor.start()
         
         self.log("Started processing file")
@@ -414,5 +505,3 @@ if __name__ == "__main__":
     window.show()
     
     sys.exit(app.exec_())
-
-    # created August 20 2025 :)
